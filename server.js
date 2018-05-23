@@ -2,13 +2,19 @@ var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
+var bodyParser = require('body-parser');
+
+require('dotenv').config();
 
 var app = express();
+require('./config/database');
 
 app.use(logger('dev'));
 
 app.use(favicon(path.join(__dirname, 'build', 'favicon.ico')));
 app.use(express.static(path.join(__dirname, 'build')));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
 //Put the API routes here, before the "catch all" route 
 app.use("/api", require('./routes/api'))

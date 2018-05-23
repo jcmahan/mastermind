@@ -7,6 +7,7 @@ import {
 import './App.css';
 import GamePage from '../GamePage/GamePage';
 import SettingsPage from '../SettingsPage/SettingsPage';
+import ScoresPage from '../ScoresPage/ScoresPage';
 
 let colorTable = [
   {name: 'Easy', colors: ['#7CCCE5', '#FDE47F', '#E04644', '#B576AD']},
@@ -18,7 +19,7 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = Object.assign(
-      {difficultyLevel: 0, colors: colorTable[0].colors},
+      {difficultyLevel: 0, colors: colorTable[0].colors, scores: []},
       this.getInitialState()
     );
   }
@@ -32,7 +33,7 @@ class App extends Component {
       selColorIdx: 0,
       guesses: [this.getNewGuess()],
       elapsedTime: 0,
-      finalTime: 0
+      finalTime: 0,
     };
   }
 
@@ -87,6 +88,7 @@ class App extends Component {
   }
 
   handleScoreClick = () => {
+    
     let currentGuessIdx = this.state.guesses.length - 1;
 
     // Computing the score will modify the guessed code and the
@@ -130,19 +132,59 @@ class App extends Component {
       guesses: guessesCopy,
       finalTime: (perfect === 4) ? prevState.elapsedTime : 0
     }));
-  }
+
+    if (this.state.guesses[this.state.guesses.length - 1].score.perfect === 4) {
+      let initials = window.prompt("Congrats, Winner! What are your Initials?")
+      let sortedScores = this.state.scores.sort(function(score1, score2) {
+      return score2.numGuesses - score1.numGuesses
+    })
+      let lowestScore = sortedScores.slice(0,10)[0]
+          if (this.state.guesses.length < lowestScore.numGuesses && this.state.elapsedTime < lowestScore.seconds){
+          (this.state.guesses.length)
+            fetch('/api/scores/new', {
+              method: 'POST',
+              body: JSON.stringify({
+                initials: initials, 
+                numGuesses: this.state.guesses.length,
+                seconds: this.state.elapsedTime
+              }), 
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            })
+            .then(data => data.json())
+            .then(res => {
+              console.log("test")
+              this.props.history.push('/scores');
+              console.log(this.props.history)
+          })
+          }
+          };
+        }
+
+
+
+      //check if current score belongs in high score list
+      //if yes, add score to database
+      //if no, do nada
 
   handleTick = () => {
     this.setState((prevState) => ({
       elapsedTime: ++prevState.elapsedTime
     }));
   }
+  
+  //Lifecycle Methods//
+  componentDidMount() {
+    fetch("/api/scores")
+      .then(res => res.json())
+      .then(scores => this.setState({scores}));
+  }
 
   render() {
     return (
       <div>
         <header className='header-footer'>R E A C T &nbsp;&nbsp; M A S T E R M I N D</header>
-        <Router>
             <Switch>
               <Route exact path='/' render={() =>
                 <GamePage
@@ -166,8 +208,12 @@ class App extends Component {
                   handleNewGame={this.handleNewGameClick}
                 />
               }/>
+              <Route path='/scores' render={() =>
+                <ScoresPage
+                    scores={this.state.scores}
+                  />
+              }/>
             </Switch>
-        </Router>
       </div>
     );
   }
